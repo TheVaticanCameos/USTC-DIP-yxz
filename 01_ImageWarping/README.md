@@ -28,10 +28,6 @@ source env-01/bin/activate
 .\env-01\Scripts\activate
 ```
 
-```bash
-pip install -r requirements.txt
-```
-
 ### 安装环境依赖
 
 在终端中运行
@@ -39,6 +35,8 @@ pip install -r requirements.txt
 ```bash
 pip install -r requirements.txt
 ```
+
+即可安装本实验所需要的第三方库。
 
 ## 运行方法及结果
 
