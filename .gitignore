@@ -2,5 +2,11 @@
 env/
 01_ImageWarping/data
 02_DIPwithPyTorch/Ref
+02_DIPwithPyTorch/Pix2pix/datasets
+02_DIPwithPyTorch/Pix2pix/checkpoints
+02_DIPwithPyTorch/Pix2pix/__pycache__
+02_DIPwithPyTorch/Pix2pix/train_results
+02_DIPwithPyTorch/Pix2pix/val_results
+02_DIPwithPyTorch/Pix2pix/train_list.txt
+02_DIPwithPyTorch/Pix2pix/val_list.txt
 *.mp4
-*.png
