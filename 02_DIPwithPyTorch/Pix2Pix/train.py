@@ -9,6 +9,7 @@ from facades_dataset import FacadesDataset
 from FCN_network import FullyConvNetwork
 from torch.optim.lr_scheduler import StepLR
 
+
 def tensor_to_image(tensor):
     """
     Convert a PyTorch tensor to a NumPy array suitable for OpenCV.
@@ -28,6 +29,7 @@ def tensor_to_image(tensor):
     # Scale to [0, 255] and convert to uint8
     image = (image * 255).astype(np.uint8)
     return image
+
 
 def save_images(inputs, targets, outputs, folder_name, epoch, num_images=5):
     """
@@ -54,7 +56,8 @@ def save_images(inputs, targets, outputs, folder_name, epoch, num_images=5):
         # Save the comparison image
         cv2.imwrite(f'{folder_name}/epoch_{epoch}/result_{i + 1}.png', comparison)
 
-def train_one_epoch(model, dataloader, optimizer, criterion, device, epoch, num_epochs):
+
+def train_one_epoch(model, dataloader, optimizer, criterion, device, epoch, num_epochs) -> float:
     """
     Train the model for one epoch.
 
@@ -82,7 +85,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, epoch, num_
         outputs = model(image_rgb)
 
         # Save sample images every 5 epochs
-        if epoch % 5 == 0 and i == 0:
+        if epoch % 50 == 0 and i == 0:
             save_images(image_rgb, image_semantic, outputs, 'train_results', epoch)
 
         # Compute the loss
@@ -97,8 +100,11 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, epoch, num_
 
         # Print loss information
         print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(dataloader)}], Loss: {loss.item():.4f}')
+    
+    return running_loss
 
-def validate(model, dataloader, criterion, device, epoch, num_epochs):
+
+def validate(model, dataloader, criterion, device, epoch, num_epochs) -> float:
     """
     Validate the model on the validation dataset.
 
@@ -127,12 +133,15 @@ def validate(model, dataloader, criterion, device, epoch, num_epochs):
             val_loss += loss.item()
 
             # Save sample images every 5 epochs
-            if epoch % 5 == 0 and i == 0:
-                save_images(image_rgb, image_semantic, outputs, 'val_results', epoch)
+            if i == 0:
+                save_images(image_rgb, image_semantic, outputs, 'val_results', epoch+1)
 
     # Calculate average validation loss
     avg_val_loss = val_loss / len(dataloader)
     print(f'Epoch [{epoch + 1}/{num_epochs}], Validation Loss: {avg_val_loss:.4f}')
+
+    return avg_val_loss
+
 
 def main():
     """
@@ -140,35 +149,41 @@ def main():
     """
     # Set device to GPU if available
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(device)
 
     # Initialize datasets and dataloaders
     train_dataset = FacadesDataset(list_file='train_list.txt')
     val_dataset = FacadesDataset(list_file='val_list.txt')
 
-    train_loader = DataLoader(train_dataset, batch_size=100, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=100, shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=os.cpu_count())
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=os.cpu_count())
 
     # Initialize model, loss function, and optimizer
     model = FullyConvNetwork().to(device)
     criterion = nn.L1Loss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.5, 0.999))
+    optimizer = optim.Adam(model.parameters(), lr=0.01, betas=(0.5, 0.999))
 
     # Add a learning rate scheduler for decay
     scheduler = StepLR(optimizer, step_size=200, gamma=0.2)
 
     # Training loop
-    num_epochs = 800
+    num_epochs = 400
+    train_loss_his = []
+    val_loss_his = []
     for epoch in range(num_epochs):
-        train_one_epoch(model, train_loader, optimizer, criterion, device, epoch, num_epochs)
-        validate(model, val_loader, criterion, device, epoch, num_epochs)
+        trainLoss = train_one_epoch(model, train_loader, optimizer, criterion, device, epoch, num_epochs)
+        train_loss_his.append(trainLoss)
 
         # Step the scheduler after each epoch
         scheduler.step()
 
         # Save model checkpoint every 20 epochs
-        if (epoch + 1) % 20 == 0:
+        if (epoch + 1) % 50 == 0:
+            valLoss = validate(model, val_loader, criterion, device, epoch, num_epochs)
+            val_loss_his.append(valLoss)
             os.makedirs('checkpoints', exist_ok=True)
             torch.save(model.state_dict(), f'checkpoints/pix2pix_model_epoch_{epoch + 1}.pth')
+
 
 if __name__ == '__main__':
     main()
