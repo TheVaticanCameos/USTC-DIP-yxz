@@ -5,4 +5,5 @@
 ## 课程作业列表
 
 - [01 Image Warping](./01_ImageWarping/README.md)：图像的几何变换与交互式变形
-- xxx
+- [02 DIP with PyTorch](./02_DIPwithPyTorch/README.md)：使用 `PyTorch` 完成图像处理任务
+- [xxx]
