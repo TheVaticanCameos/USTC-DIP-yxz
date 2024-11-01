@@ -108,17 +108,12 @@ def create_mask_from_points(points, img_h, img_w):
         np.ndarray: Binary mask of shape (img_h, img_w).
     """
     mask = np.zeros((img_h, img_w), dtype=np.uint8)
-    ### FILL: Obtain Mask from Polygon Points. 
-    ### 0 indicates outside the Polygon.
-    ### 255 indicates inside the Polygon.
+    # 0 indicates outside the Polygon; 255 indicates inside the Polygon.
     mask = cv2.fillPoly(mask, [points], (255))
-    print("=====================================")
-    print(mask)
-    print("=====================================")
     return mask
 
 # Calculate the Laplacian loss between the foreground and blended image
-def cal_laplacian_loss(foreground_img, foreground_mask, blended_img, background_mask):
+def cal_laplacian_loss(foreground_img: torch.Tensor, foreground_mask: torch.Tensor, blended_img: torch.Tensor, background_mask: torch.Tensor):
     """
     Computes the Laplacian loss between the foreground and blended images within the masks.
 
@@ -131,10 +126,13 @@ def cal_laplacian_loss(foreground_img, foreground_mask, blended_img, background_
     Returns:
         torch.Tensor: The computed Laplacian loss.
     """
-    loss = torch.tensor(0.0, device=foreground_img.device)
-    ### FILL: Compute Laplacian Loss with https://pytorch.org/docs/stable/generated/torch.nn.functional.conv2d.html.
-    ### Note: The loss is computed within the masks.
-
+    fg_index = torch.where(foreground_mask > 0)
+    bg_index = torch.where(background_mask > 0)
+    laplace = torch.tensor([[0, -1, 0], [-1, 4, -1], [0, -1, 0]], dtype=torch.float32, device=foreground_img.device).expand(1, 3, 3, 3)
+    laplace_foreground = torch.nn.functional.conv2d(foreground_img, laplace, padding=1)
+    laplace_background = torch.nn.functional.conv2d(blended_img, laplace, padding=1)
+    lossFunc = torch.nn.MSELoss()
+    loss = lossFunc(laplace_background[bg_index[0], bg_index[1], bg_index[2], bg_index[3]], laplace_foreground[fg_index[0], fg_index[1], fg_index[2], fg_index[3]])
     return loss
 
 # Perform Poisson image blending
@@ -169,11 +167,6 @@ def blending(foreground_image_original, background_image_original, dx, dy, polyg
 
     # Convert numpy arrays to torch tensors
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'  # Using CPU will be slow
-    
-    print("-----------------------")
-    print(device)
-    print("-----------------------")
-
 
     fg_img_tensor = torch.from_numpy(foreground_np).to(device).permute(2, 0, 1).unsqueeze(0).float() / 255.
     bg_img_tensor = torch.from_numpy(background_np).to(device).permute(2, 0, 1).unsqueeze(0).float() / 255.
@@ -187,10 +180,10 @@ def blending(foreground_image_original, background_image_original, dx, dy, polyg
     blended_img.requires_grad = True
 
     # Set up optimizer
-    optimizer = torch.optim.Adam([blended_img], lr=1e-3)
-
+    optimizer = torch.optim.Adam([blended_img], lr=1e-2)
+    
     # Optimization loop
-    iter_num = 10000
+    iter_num = 2000
     for step in range(iter_num):
         blended_img_for_loss = blended_img.detach() * (1. - bg_mask_tensor) + blended_img * bg_mask_tensor  # Only blending in the mask region
 
@@ -237,139 +230,139 @@ def close_polygon_and_reset_dx(img_original, polygon_state, dx, dy, background_i
     return img_with_poly, updated_polygon_state, updated_background, new_dx
 
 
-# Gradio Interface
-with gr.Blocks(title="Poisson Image Blending", css="""
-    body {
-        background-color: #1e1e1e;
-        color: #ffffff;
-    }
-    .gr-button {
-        font-size: 1em;
-        padding: 0.75em 1.5em;
-        border-radius: 8px;
-        background-color: #6200ee;
-        color: #ffffff;
-        border: none;
-    }
-    .gr-button:hover {
-        background-color: #3700b3;
-    }
-    .gr-slider input[type=range] {
-        accent-color: #03dac6;
-    }
-    .gr-text, .gr-markdown {
-        font-size: 1.1em;
-    }
-    .gr-markdown h1, .gr-markdown h2, .gr-markdown h3 {
-        color: #bb86fc;
-    }
-    .gr-input, .gr-output {
-        background-color: #2c2c2c;
-        border: 1px solid #3c3c3c;
-    }
-""") as demo:
-    # Initialize states
-    polygon_state = gr.State(initialize_polygon())
-    background_image_original = gr.State(value=None)
+if __name__ == "__main__":
+    # Gradio Interface
+    with gr.Blocks(title="Poisson Image Blending", css="""
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+        }
+        .gr-button {
+            font-size: 1em;
+            padding: 0.75em 1.5em;
+            border-radius: 8px;
+            background-color: #6200ee;
+            color: #ffffff;
+            border: none;
+        }
+        .gr-button:hover {
+            background-color: #3700b3;
+        }
+        .gr-slider input[type=range] {
+            accent-color: #03dac6;
+        }
+        .gr-text, .gr-markdown {
+            font-size: 1.1em;
+        }
+        .gr-markdown h1, .gr-markdown h2, .gr-markdown h3 {
+            color: #bb86fc;
+        }
+        .gr-input, .gr-output {
+            background-color: #2c2c2c;
+            border: 1px solid #3c3c3c;
+        }
+    """) as demo:
+        # Initialize states
+        polygon_state = gr.State(initialize_polygon())
+        background_image_original = gr.State(value=None)
 
-    # Title and description
-    gr.Markdown("<h1 style='text-align: center;'>Poisson Image Blending</h1>")
-    gr.Markdown("<p style='text-align: center; font-size: 1.2em;'>Blend a selected area from a foreground image onto a background image with adjustable positions.</p>")
+        # Title and description
+        gr.Markdown("<h1 style='text-align: center;'>Poisson Image Blending</h1>")
+        gr.Markdown("<p style='text-align: center; font-size: 1.2em;'>Blend a selected area from a foreground image onto a background image with adjustable positions.</p>")
 
-    with gr.Row():
-        with gr.Column():
-            gr.Markdown("### Foreground Image")
-            foreground_image_original = gr.Image(
-                label="", type="pil", interactive=True, height=300
-            )
-            gr.Markdown(
-                "<p style='font-size: 0.9em;'>Upload the foreground image where the polygon will be selected.</p>"
-            )
-            gr.Markdown("### Foreground Image with Polygon")
-            foreground_image_with_polygon = gr.Image(
-                label="", type="pil", interactive=True, height=300
-            )
-            gr.Markdown(
-                "<p style='font-size: 0.9em;'>Click on the image to define the polygon area. After selecting at least three points, click <strong>Close Polygon</strong>.</p>"
-            )
-            close_polygon_button = gr.Button("Close Polygon")
-        with gr.Column():
-            gr.Markdown("### Background Image")
-            background_image = gr.Image(
-                label="", type="pil", interactive=True, height=300
-            )
-            gr.Markdown("<p style='font-size: 0.9em;'>Upload the background image where the polygon will be placed.</p>")
+        with gr.Row():
+            with gr.Column():
+                gr.Markdown("### Foreground Image")
+                foreground_image_original = gr.Image(
+                    label="", type="pil", interactive=True, height=300
+                )
+                gr.Markdown(
+                    "<p style='font-size: 0.9em;'>Upload the foreground image where the polygon will be selected.</p>"
+                )
+                gr.Markdown("### Foreground Image with Polygon")
+                foreground_image_with_polygon = gr.Image(
+                    label="", type="pil", interactive=True, height=300
+                )
+                gr.Markdown(
+                    "<p style='font-size: 0.9em;'>Click on the image to define the polygon area. After selecting at least three points, click <strong>Close Polygon</strong>.</p>"
+                )
+                close_polygon_button = gr.Button("Close Polygon")
+            with gr.Column():
+                gr.Markdown("### Background Image")
+                background_image = gr.Image(
+                    label="", type="pil", interactive=True, height=300
+                )
+                gr.Markdown("<p style='font-size: 0.9em;'>Upload the background image where the polygon will be placed.</p>")
 
-    with gr.Row():
-        with gr.Column():
-            gr.Markdown("### Background Image with Polygon Overlay")
-            background_image_with_polygon = gr.Image(
-                label="", type="pil", height=500
-            )
-            gr.Markdown("<p style='font-size: 0.9em;'>Adjust the position of the polygon using the sliders below.</p>")
-        with gr.Column():
-            gr.Markdown("### Blended Image")
-            output_image = gr.Image(
-                label="", type="pil", height=500  # Increased height for larger display
-            )
+        with gr.Row():
+            with gr.Column():
+                gr.Markdown("### Background Image with Polygon Overlay")
+                background_image_with_polygon = gr.Image(
+                    label="", type="pil", height=500
+                )
+                gr.Markdown("<p style='font-size: 0.9em;'>Adjust the position of the polygon using the sliders below.</p>")
+            with gr.Column():
+                gr.Markdown("### Blended Image")
+                output_image = gr.Image(
+                    label="", type="pil", height=500  # Increased height for larger display
+                )
 
-    with gr.Row():
-        with gr.Column():
-            dx = gr.Slider(
-                label="Horizontal Offset", minimum=-500, maximum=500, step=1, value=0
-            )
-        with gr.Column():
-            dy = gr.Slider(
-                label="Vertical Offset", minimum=-500, maximum=500, step=1, value=0
-            )
-        blend_button = gr.Button("Blend Images")
+        with gr.Row():
+            with gr.Column():
+                dx = gr.Slider(
+                    label="Horizontal Offset", minimum=-500, maximum=500, step=1, value=0
+                )
+            with gr.Column():
+                dy = gr.Slider(
+                    label="Vertical Offset", minimum=-500, maximum=500, step=1, value=0
+                )
+            blend_button = gr.Button("Blend Images")
 
-    # Interactions
+        # Interactions
+        # Copy the original image to the interactive image when uploaded
+        foreground_image_original.change(
+            fn=lambda img: img,
+            inputs=foreground_image_original,
+            outputs=foreground_image_with_polygon,
+        )
 
-    # Copy the original image to the interactive image when uploaded
-    foreground_image_original.change(
-        fn=lambda img: img,
-        inputs=foreground_image_original,
-        outputs=foreground_image_with_polygon,
-    )
+        # User interacts with the image with polygon
+        foreground_image_with_polygon.select(
+            add_point,
+            inputs=[foreground_image_original, polygon_state],
+            outputs=[foreground_image_with_polygon, polygon_state],
+        )
 
-    # User interacts with the image with polygon
-    foreground_image_with_polygon.select(
-        add_point,
-        inputs=[foreground_image_original, polygon_state],
-        outputs=[foreground_image_with_polygon, polygon_state],
-    )
+        close_polygon_button.click(
+            fn=close_polygon_and_reset_dx,
+            inputs=[foreground_image_original, polygon_state, dx, dy, background_image_original],
+            outputs=[foreground_image_with_polygon, polygon_state, background_image_with_polygon, dx],
+        )
 
-    close_polygon_button.click(
-        fn=close_polygon_and_reset_dx,
-        inputs=[foreground_image_original, polygon_state, dx, dy, background_image_original],
-        outputs=[foreground_image_with_polygon, polygon_state, background_image_with_polygon, dx],
-    )
+        background_image.change(
+            fn=lambda img: img,
+            inputs=background_image,
+            outputs=background_image_original,
+        )
 
-    background_image.change(
-        fn=lambda img: img,
-        inputs=background_image,
-        outputs=background_image_original,
-    )
+        # Update background image when dx or dy changes
+        dx.change(
+            fn=update_background,
+            inputs=[background_image_original, polygon_state, dx, dy],
+            outputs=background_image_with_polygon,
+        )
+        dy.change(
+            fn=update_background,
+            inputs=[background_image_original, polygon_state, dx, dy],
+            outputs=background_image_with_polygon,
+        )
 
-    # Update background image when dx or dy changes
-    dx.change(
-        fn=update_background,
-        inputs=[background_image_original, polygon_state, dx, dy],
-        outputs=background_image_with_polygon,
-    )
-    dy.change(
-        fn=update_background,
-        inputs=[background_image_original, polygon_state, dx, dy],
-        outputs=background_image_with_polygon,
-    )
+        # Blend images when button is clicked
+        blend_button.click(
+            fn=blending,
+            inputs=[foreground_image_original, background_image_original, dx, dy, polygon_state],
+            outputs=output_image,
+        )
 
-    # Blend images when button is clicked
-    blend_button.click(
-        fn=blending,
-        inputs=[foreground_image_original, background_image_original, dx, dy, polygon_state],
-        outputs=output_image,
-    )
-
-# Launch the Gradio app
-demo.launch()
+    # Launch the Gradio app
+    demo.launch()
