@@ -9,4 +9,12 @@ env/
 02_DIPwithPyTorch/Pix2pix/val_results
 02_DIPwithPyTorch/Pix2pix/train_list.txt
 02_DIPwithPyTorch/Pix2pix/val_list.txt
+03_PlayWithGANs/Pix2PixWithGAN/checkpoints
+03_PlayWithGANs/Pix2PixWithGAN/datasets
+03_PlayWithGANs/Pix2PixWithGAN/train_results
+03_PlayWithGANs/Pix2PixWithGAN/val_results
+03_PlayWithGANs/Pix2PixWithGAN/__pycache__
+03_PlayWithGANs/Pix2PixWithGAN/train_list.txt
+03_PlayWithGANs/Pix2PixWithGAN/val_list.txt
+03_PlayWithGANs/AutoFaceDragGAN/DragGAN
 *.mp4
