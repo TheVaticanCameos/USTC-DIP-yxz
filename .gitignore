@@ -19,3 +19,4 @@ env/
 03_PlayWithGANs/AutoFaceDragGAN/DragGAN
 04_3DGS/data
 *.mp4
+!04_3DGS/debug_rendering.mp4
