@@ -59,7 +59,7 @@ $$
 
 #### 2.4 体渲染
 
-使用 $\alpha $ blending 进行体渲染，具体公式为
+使用 $ \alpha $ blending 进行体渲染，具体公式为
 
 $$
 T_{\left(x, i\right)}=\prod_{j=1}^{i-1}\left(1-\alpha_{\left(x, j\right)}\right)
