@@ -7,3 +7,4 @@
 - [01 Image Warping](./01_ImageWarping/README.md)：图像的几何变换与交互式变形
 - [02 DIP with PyTorch](./02_DIPwithPyTorch/README.md)：使用 `PyTorch` 完成图像处理任务
 - [03 Play with GANs](./03_PlayWithGANs/README.md)：`GAN` 模型的应用
+- [04 3DGS](./04_3DGS/README.md)：3D Gauss Splatting

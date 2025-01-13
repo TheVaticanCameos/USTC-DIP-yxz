@@ -112,6 +112,8 @@ class GaussianModel(nn.Module):
         # Compute covariance
         ### FILL:
         ### Covs3d = ...
+        Covs3d = torch.matmul(R, S)
+        Covs3d = torch.matmul(Covs3d, R.transpose(1, 2))
         
         return Covs3d
 
