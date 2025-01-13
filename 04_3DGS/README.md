@@ -53,13 +53,17 @@ python debug_mvs_by_projecting_pts.py --data_dir ../data/lego
 
 使用二维空间中的Gauss分布进行体渲染。具体公式如下：
 
-\[f(\mathbf{x}; \boldsymbol{\mu}\_{i}, \boldsymbol{\Sigma}\_{i}) = \frac{1}{2 \pi \sqrt{ | \boldsymbol{\Sigma}\_{i} |}} \exp \left ( {-\frac{1}{2}} (\mathbf{x} - \boldsymbol{\mu}\_{i})^T \boldsymbol{\Sigma}\_{i}^{-1} (\mathbf{x} - \boldsymbol{\mu}\_{i}) \right ) = \frac{1}{2 \pi \sqrt{ | \boldsymbol{\Sigma}\_{i} |}} \exp \left ( P_{(\mathbf{x}, i)} \right )\]
+$$
+f(\mathbf{x}; \boldsymbol{\mu}\_{i}, \boldsymbol{\Sigma}\_{i}) = \frac{1}{2 \pi \sqrt{ | \boldsymbol{\Sigma}\_{i} |}} \exp \left ( {-\frac{1}{2}} (\mathbf{x} - \boldsymbol{\mu}\_{i})^T \boldsymbol{\Sigma}\_{i}^{-1} (\mathbf{x} - \boldsymbol{\mu}\_{i}) \right ) = \frac{1}{2 \pi \sqrt{ | \boldsymbol{\Sigma}\_{i} |}} \exp \left ( P_{(\mathbf{x}, i)} \right )
+$$
 
 #### 2.4 体渲染
 
 使用 $\alpha $ blending 进行体渲染，具体公式为
 
-\[T_{\left(x, i\right)}=\prod_{j=1}^{i-1}\left(1-\alpha_{\left(x, j\right)}\right)\]
+$$
+T_{\left(x, i\right)}=\prod_{j=1}^{i-1}\left(1-\alpha_{\left(x, j\right)}\right)
+$$
 
 ---
 
